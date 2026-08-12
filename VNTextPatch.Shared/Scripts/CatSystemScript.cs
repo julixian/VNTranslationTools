@@ -242,15 +242,15 @@ namespace VNTextPatch.Shared.Scripts
 
         private static string ScriptTextToCstText(CstString cstString, string text)
         {
-            if (!StringUtil.ContainsJapaneseText(text))
-            {
-                // Prevent wordwrapping in the middle of words: CS2 "[word]" syntax
-                text = Regex.Replace(text, @"\S+", m => Regex.IsMatch(m.Value, @"\\[^@]") ? m.Value : $"[{m.Value}]");
+            //if (!StringUtil.ContainsJapaneseText(text))
+            //{
+            //    // Prevent wordwrapping in the middle of words: CS2 "[word]" syntax
+            //    text = Regex.Replace(text, @"\S+", m => Regex.IsMatch(m.Value, @"\\[^@]") ? m.Value : $"[{m.Value}]");
 
-                // Smaller font size so everything fits in the message window.
-                // Delimit with dummy tag so it doesn't become "\fss" due to a line starting with "s"
-                text = "\\fs\\@" + text;
-            }
+            //    // Smaller font size so everything fits in the message window.
+            //    // Delimit with dummy tag so it doesn't become "\fss" due to a line starting with "s"
+            //    text = "\\fs\\@" + text;
+            //}
 
             text = ReplaceSpecialCharsByEscapeSequence(text);
             text = text.Replace("\r\n", "\\n");
@@ -268,11 +268,11 @@ namespace VNTextPatch.Shared.Scripts
             for (int i = 0; i < str.Length; i++)
             {
                 char c = str[i];
-                if (c == '\'' || c == '"')
-                {
-                    result.Append($@"\${(int)c};");
-                }
-                else
+                //if (c == '\'' || c == '"')
+                //{
+                //    result.Append($@"\${(int)c};");
+                //}
+                //else
                 {
                     try
                     {
