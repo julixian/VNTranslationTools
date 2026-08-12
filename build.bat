@@ -1,30 +1,36 @@
 @echo off
+setlocal EnableExtensions
 
-set DOTNET_CLI_TELEMETRY_OPTOUT=1
+rem Build only the managed VNTextPatch tool.
+cd /d "%~dp0"
+set "PROJECT=%~dp0VNTextPatch\VNTextPatch.csproj"
+set "OUTPUT=%~dp0Build\VNTextPatch"
+set "MSBUILD="
 
-for /F "tokens=*" %%f in ('dir /B /AD /S bin') do rmdir /S /Q "%%f"
-for /F "tokens=*" %%f in ('dir /B /AD /S obj') do rmdir /S /Q "%%f"
-if exist Build rmdir /S /Q Build
-if exist Debug rmdir /S /Q Debug
-if exist Release rmdir /S /Q Release
-
-mkdir Build
-mkdir Build\VNTextPatch
-mkdir Build\VNTextProxy
-
-dotnet restore VNTextPatch\VNTextPatch.csproj /p:RuntimeIdentifiers=win
-msbuild VNTextPatch\VNTextPatch.csproj /p:LangVersion=9 /p:AllowUnsafeBlocks=true /p:Platform=AnyCPU /p:Configuration=Release /p:OutputPath=..\Build\VNTextPatch\
-del Build\VNTextPatch\FreeMote*.xml
-del Build\VNTextPatch\*.pdb
-del Build\VNTextPatch\*.txt
-
-msbuild VNTextProxy\VNTextProxy.vcxproj /p:Platform=Win32 /p:Configuration=Release /p:TargetName=d2d1
-copy /Y VNTextProxy\Release\d2d1.dll Build\VNTextProxy
-rmdir /S /Q VNTextProxy\Release
-
-for /D %%p in (VNTextProxy\AlternateProxies\*) do (
-    copy /Y VNTextProxy\AlternateProxies\%%~np\*.* VNTextProxy
-    msbuild VNTextProxy\VNTextProxy.vcxproj /p:Platform=Win32 /p:Configuration=Release /p:TargetName=%%~np
-    copy /Y VNTextProxy\Release\%%~np.dll Build\VNTextProxy
-    rmdir /S /Q VNTextProxy\Release
+for /f "delims=" %%I in ('where msbuild 2^>nul') do if not defined MSBUILD set "MSBUILD=%%I"
+if not defined MSBUILD if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
+    for /f "usebackq delims=" %%I in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do if not defined MSBUILD set "MSBUILD=%%I"
 )
+if not defined MSBUILD if exist "%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" (
+    for /f "usebackq delims=" %%I in (`"%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe`) do if not defined MSBUILD set "MSBUILD=%%I"
+)
+
+if not defined MSBUILD (
+    echo MSBuild was not found. Install Visual Studio with the .NET desktop build tools.
+    exit /b 1
+)
+
+if exist "%OUTPUT%" rmdir /s /q "%OUTPUT%"
+mkdir "%OUTPUT%"
+
+"%MSBUILD%" "%PROJECT%" /restore /m /nologo /p:LangVersion=9 /p:AllowUnsafeBlocks=true /p:Platform=AnyCPU /p:Configuration=Release /p:OutputPath="%OUTPUT%"
+if errorlevel 1 exit /b %errorlevel%
+
+rem Remove development-only files from the distributable output.
+del /q "%OUTPUT%\*.pdb" 2>nul
+del /q "%OUTPUT%\FreeMote*.xml" 2>nul
+del /q "%OUTPUT%\*.txt" 2>nul
+
+echo.
+echo Build succeeded: %OUTPUT%\VNTextPatch.exe
+exit /b 0
